@@ -4,27 +4,94 @@ import { Search, User, Play, X, MessageSquare, Heart, Share2, Smartphone, QrCode
 import { MOCK_MOVIES, MOCK_TOPICS, MOCK_GROUPS, MOCK_BOOKS, MOCK_ALBUMS, DOUBAN_GREEN } from './constants';
 import { Movie, Topic } from './types';
 
+// --- Global Styles & CSS Variables ---
+const DoubanStyles = () => (
+  <style>{`
+    :root {
+      --douban-green: #42bd56;
+      --douban-dark-green: #007722;
+      --douban-blue: #3e9bc0; /* 豆瓣青蓝 variant for dark mode */
+      --douban-blue-hover: #ffffff;
+      --douban-yellow: #ffac2d;
+      --douban-text-gray: #ccc;
+      --douban-text-light: #fff;
+    }
+    
+    .douban-ease {
+      transition: all 0.2s ease;
+    }
+
+    .douban-link {
+      color: var(--douban-text-gray);
+      text-decoration: none;
+    }
+
+    .douban-link:hover {
+      color: var(--douban-text-light);
+    }
+
+    .section-title-highlight {
+      color: var(--douban-green);
+      text-shadow: 0 0 20px rgba(66, 189, 86, 0.2);
+    }
+    
+    .category-link {
+      color: var(--douban-blue);
+    }
+    
+    .category-link:hover {
+      color: #fff;
+    }
+    
+    .category-link.active {
+      color: var(--douban-green);
+      font-weight: 600;
+    }
+
+    .rating-highlight {
+      color: var(--douban-yellow);
+    }
+    
+    .tag-highlight {
+      color: #5c9bc4;
+    }
+  `}</style>
+);
+
 // --- Reusable Layout Components ---
 
 const SectionHeader = ({ title, subtitle, extra, dark = false }: { title: string, subtitle?: string, extra?: string, dark?: boolean }) => (
   <div className={`flex items-center gap-4 mb-6 border-b pb-2 ${dark ? 'border-white/10' : 'border-gray-800'}`}>
-    <h3 className={`${dark ? 'text-[#42bd56]' : 'text-[#007722]'} font-bold text-xl`}>{title}</h3>
-    {subtitle && <span className={`${dark ? 'text-[#e1e1e1]/80' : 'text-gray-500'} text-sm mt-1`}>{subtitle} · · · · · · <span className="text-[#37a] cursor-pointer hover:bg-[#37a] hover:text-white px-1 ml-1">( 更多 )</span></span>}
-    {extra && <span className={`${dark ? 'text-[#e1e1e1]/60' : 'text-gray-500'} text-sm ml-auto cursor-pointer hover:text-[#37a]`}>{extra}</span>}
+    <h3 className={`font-bold text-xl douban-ease ${dark ? 'text-white' : 'text-[#007722]'}`}>
+      {title}
+    </h3>
+    {subtitle && (
+      <span className="text-sm mt-1 flex items-center douban-ease" style={{ color: 'var(--douban-text-gray)' }}>
+        {subtitle} · · · · · · 
+        <span className="ml-1 cursor-pointer douban-link douban-ease text-xs">
+          ( 更多 )
+        </span>
+      </span>
+    )}
+    {extra && (
+      <span className="text-sm ml-auto cursor-pointer douban-link douban-ease">
+        {extra}
+      </span>
+    )}
   </div>
 );
 
 const SidebarList = ({ title, items, extra, dark = false }: { title: string, items: string[], extra?: string, dark?: boolean }) => (
   <div className="w-full md:w-64 flex-shrink-0">
     <div className={`flex items-center justify-between mb-4 border-b pb-2 ${dark ? 'border-white/10' : 'border-gray-800'}`}>
-      <h4 className={`${dark ? 'text-[#42bd56]' : 'text-[#007722]'} font-bold text-sm`}>{title} · · · · · ·</h4>
-      {extra && <span className="text-gray-500 text-[11px] cursor-pointer hover:text-white">{extra}</span>}
+      <h4 className="font-bold text-sm section-title-highlight douban-ease">{title} · · · · · ·</h4>
+      {extra && <span className="text-[11px] cursor-pointer douban-link douban-ease">{extra}</span>}
     </div>
     <ul className="space-y-3">
       {items.map((item, idx) => (
-        <li key={idx} className={`text-sm ${dark ? 'text-[#e1e1e1]/80 hover:text-white' : 'text-gray-300 hover:text-white'} cursor-pointer flex gap-3`}>
-          <span className="text-gray-500 w-4">{idx + 1}.</span>
-          <span className="truncate">{item}</span>
+        <li key={idx} className="text-sm cursor-pointer flex gap-3 group">
+          <span className="text-gray-500 w-4 font-mono text-xs pt-0.5">{idx + 1}.</span>
+          <span className="truncate douban-link douban-ease border-b border-transparent group-hover:border-white/30 pb-0.5">{item}</span>
         </li>
       ))}
     </ul>
@@ -38,10 +105,15 @@ const GroupSection = () => {
   return (
     <div className="bg-[#1a1a1a] py-16">
       <div className="max-w-7xl mx-auto px-4 flex gap-16">
-        <div className="w-32 hidden lg:block space-y-2">
-          <h2 className="text-[#42bd56] text-2xl font-bold mb-6">小组</h2>
-          {categories.map(c => (
-            <p key={c} className="text-sm text-[#37a] hover:bg-[#37a] hover:text-white cursor-pointer px-1 py-0.5">{c}</p>
+        <div className="w-32 hidden lg:block space-y-3">
+          <h2 className="text-2xl font-bold mb-6 section-title-highlight">小组</h2>
+          {categories.map((c, i) => (
+            <p 
+              key={c} 
+              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
+            >
+              {c}
+            </p>
           ))}
         </div>
         <div className="flex-1">
@@ -49,9 +121,9 @@ const GroupSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-12">
             {MOCK_GROUPS.map((g, i) => (
               <div key={i} className="flex gap-4 items-center group cursor-pointer">
-                <img src={g.img} className="w-12 h-12 rounded border border-gray-800 group-hover:opacity-80" />
+                <img src={g.img} className="w-12 h-12 rounded border border-gray-800 group-hover:opacity-80 douban-ease" />
                 <div>
-                  <h4 className="text-sm text-[#37a] group-hover:bg-[#37a] group-hover:text-white px-1 inline-block">{g.title}</h4>
+                  <h4 className="text-sm category-link group-hover:text-white px-1 inline-block douban-ease font-medium">{g.title}</h4>
                   <p className="text-[11px] text-gray-500 mt-1">{g.members} 个成员</p>
                 </div>
               </div>
@@ -65,13 +137,20 @@ const GroupSection = () => {
 
 const MovieSection = ({ onMovieClick }: { onMovieClick: (m: Movie) => void }) => {
   const list = ['利刃出鞘3', '链锯人 剧场版：蕾塞篇', '无可奈何', '人偶之家', '奇遇', '弗兰肯斯坦', '刺杀小说家2', '拯救地球', '铁血战士：杀戮之地', '普通事故'];
+  const categories = ['影讯&购票', '选电影', '电视剧', '排行榜', '影评'];
+  
   return (
     <div className="bg-[#1a1a1a] py-16 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-        <div className="w-32 hidden lg:block space-y-2">
-          <h2 className="text-[#42bd56] text-2xl font-bold mb-6">电影</h2>
-          {['影讯&购票', '选电影', '电视剧', '排行榜', '影评'].map(c => (
-            <p key={c} className="text-sm text-[#37a] hover:bg-[#37a] hover:text-white cursor-pointer px-1 py-0.5">{c}</p>
+        <div className="w-32 hidden lg:block space-y-3">
+          <h2 className="text-2xl font-bold mb-6 section-title-highlight">电影</h2>
+          {categories.map((c, i) => (
+            <p 
+              key={c} 
+              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
+            >
+              {c}
+            </p>
           ))}
         </div>
         <div className="flex-1">
@@ -94,10 +173,10 @@ const MovieSection = ({ onMovieClick }: { onMovieClick: (m: Movie) => void }) =>
                   </div>
                 </div>
                 
-                <h4 className="text-xs text-white mt-3 truncate group-hover:text-[#37a] transition-colors">{m.title}</h4>
+                <h4 className="text-xs text-white mt-3 truncate douban-ease group-hover:text-[#37a]">{m.title}</h4>
                 <div className="flex items-center justify-center gap-1 my-1">
-                  <div className="flex text-orange-400 text-[9px]">★★★★★</div>
-                  <span className="text-[10px] text-gray-400">{m.rating}</span>
+                  <div className="flex text-[10px] rating-highlight">★★★★★</div>
+                  <span className="text-[11px] font-bold rating-highlight">{m.rating}</span>
                 </div>
                 <button className="bg-[#37a] text-white text-[10px] px-4 py-1.5 rounded-sm hover:bg-[#2c6aa1] mt-1 transition-colors">选座购票</button>
               </div>
@@ -111,13 +190,19 @@ const MovieSection = ({ onMovieClick }: { onMovieClick: (m: Movie) => void }) =>
 };
 
 const BookSection = () => {
+  const categories = ['每月热门图书', '读书专题', '直播活动', '名家问答', '共读交流', '鉴书团'];
   return (
     <div className="bg-[#1a1a1a] py-16 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-        <div className="w-32 hidden lg:block space-y-2">
-          <h2 className="text-[#42bd56] text-2xl font-bold mb-6">读书</h2>
-          {['每月热门图书', '读书专题', '直播活动', '名家问答', '共读交流', '鉴书团'].map(c => (
-            <p key={c} className="text-sm text-[#37a] hover:bg-[#37a] hover:text-white cursor-pointer px-1 py-0.5">{c}</p>
+        <div className="w-32 hidden lg:block space-y-3">
+          <h2 className="text-2xl font-bold mb-6 section-title-highlight">读书</h2>
+          {categories.map((c, i) => (
+            <p 
+              key={c} 
+              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
+            >
+              {c}
+            </p>
           ))}
         </div>
         <div className="flex-1">
@@ -125,8 +210,8 @@ const BookSection = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
             {MOCK_BOOKS.map((b, i) => (
               <div key={i} className="text-center group cursor-pointer">
-                <img src={b.img} className="w-full aspect-[3/4] object-cover rounded shadow group-hover:opacity-80 transition-opacity" />
-                <h4 className="text-xs text-[#37a] mt-3 group-hover:bg-[#37a] group-hover:text-white inline-block px-1">{b.title}</h4>
+                <img src={b.img} className="w-full aspect-[3/4] object-cover rounded shadow group-hover:opacity-80 douban-ease" />
+                <h4 className="text-xs text-[#37a] mt-3 group-hover:text-white inline-block px-1 douban-ease">{b.title}</h4>
                 <p className="text-[10px] text-gray-500 mt-1">{b.author}</p>
               </div>
             ))}
@@ -134,11 +219,11 @@ const BookSection = () => {
         </div>
         <div className="w-64 space-y-8">
           <div>
-            <h4 className="text-[#42bd56] font-bold text-sm mb-4 border-b border-gray-800 pb-2">热门标签 · · · · · · <span className="text-gray-500 font-normal text-xs">( 更多 )</span></h4>
+            <h4 className="font-bold text-sm mb-4 border-b border-gray-800 pb-2 section-title-highlight">热门标签 · · · · · · <span className="text-gray-500 font-normal text-xs douban-link ml-1">( 更多 )</span></h4>
             <div className="text-[11px] text-gray-400 leading-relaxed space-y-2">
-              <p>[文学] 小说 随笔 日本文学 散文 诗歌 童话 名著 港台 更多</p>
-              <p>[流行] 漫画 推理 绘本 科幻 青春 言情 奇幻 武侠 更多</p>
-              <p>[文化] 历史 哲学 传记 设计 电影 建筑 回忆录 音乐 更多</p>
+              <p><span className="text-gray-600">[文学]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">小说 随笔 日本文学 散文 诗歌 童话 名著 港台 更多</span></p>
+              <p><span className="text-gray-600">[流行]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">漫画 推理 绘本 科幻 青春 言情 奇幻 武侠 更多</span></p>
+              <p><span className="text-gray-600">[文化]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">历史 哲学 传记 设计 电影 建筑 回忆录 音乐 更多</span></p>
             </div>
           </div>
         </div>
@@ -148,17 +233,23 @@ const BookSection = () => {
 };
 
 const MusicSection = () => {
+  const categories = ['专题', '乐评', '豆瓣FM', '阿比鹿音乐奖'];
   return (
     <div className="bg-[#1a1a1a] py-16 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-        <div className="w-32 hidden lg:block space-y-2">
-          <h2 className="text-[#42bd56] text-2xl font-bold mb-6">音乐</h2>
-          {['专题', '乐评', '豆瓣FM', '阿比鹿音乐奖'].map(c => (
-            <p key={c} className="text-sm text-[#37a] hover:bg-[#37a] hover:text-white cursor-pointer px-1 py-0.5">{c}</p>
+        <div className="w-32 hidden lg:block space-y-3">
+          <h2 className="text-2xl font-bold mb-6 section-title-highlight">音乐</h2>
+          {categories.map((c, i) => (
+            <p 
+              key={c} 
+              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
+            >
+              {c}
+            </p>
           ))}
           <div className="pt-4 flex flex-col items-center gap-1 border-t border-gray-800 mt-4">
-             <div className="w-10 h-10 bg-cyan-400 rounded-lg flex items-center justify-center text-white font-bold text-xs">FM</div>
-             <span className="text-gray-400 text-[10px]">豆瓣FM</span>
+             <div className="w-10 h-10 bg-cyan-400 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-cyan-400/20">FM</div>
+             <span className="text-gray-400 text-[10px] group-hover:text-white douban-ease">豆瓣FM</span>
           </div>
         </div>
         <div className="flex-1">
@@ -166,22 +257,22 @@ const MusicSection = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-12 gap-x-8">
             {MOCK_ALBUMS.map((a, i) => (
               <div key={i} className="text-center group cursor-pointer">
-                <img src={a.img} className="w-full aspect-square object-cover rounded shadow group-hover:scale-105 transition-transform" />
-                <h4 className="text-xs text-[#37a] mt-3 group-hover:bg-[#37a] group-hover:text-white inline-block px-1">{i+1}. {a.title}</h4>
+                <img src={a.img} className="w-full aspect-square object-cover rounded shadow group-hover:scale-105 douban-ease" />
+                <h4 className="text-xs text-[#37a] mt-3 group-hover:text-white inline-block px-1 douban-ease">{i+1}. {a.title}</h4>
                 <p className="text-[10px] text-gray-500 mt-1">{a.artist}</p>
                 <div className="flex items-center justify-center gap-1 mt-1">
-                   <div className="flex text-orange-400 text-[8px]">★★★★★</div>
-                   <span className="text-[9px] text-gray-400 font-bold">{a.rating}</span>
+                   <div className="flex text-[8px] rating-highlight">★★★★★</div>
+                   <span className="text-[9px] font-bold rating-highlight">{a.rating}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
         <div className="w-64">
-           <h4 className="text-[#42bd56] font-bold text-sm mb-4 border-b border-gray-800 pb-2">热门标签 · · · · · · <span className="text-gray-500 font-normal text-xs">( 更多 )</span></h4>
+           <h4 className="font-bold text-sm mb-4 border-b border-gray-800 pb-2 section-title-highlight">热门标签 · · · · · · <span className="text-gray-500 font-normal text-xs douban-link ml-1">( 更多 )</span></h4>
            <div className="text-[11px] text-gray-400 space-y-3">
-              <p>[风格] OST 流行 民谣 pop indie Electronic Folk 摇滚 J-POP ...</p>
-              <p>[艺术家] 周杰伦 王菲 陈奕迅 孙燕姿 五月天 陈绮贞 苏打绿 ...</p>
+              <p><span className="text-gray-600">[风格]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">OST 流行 民谣 pop indie Electronic Folk 摇滚 J-POP ...</span></p>
+              <p><span className="text-gray-600">[艺术家]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">周杰伦 王菲 陈奕迅 孙燕姿 五月天 陈绮贞 苏打绿 ...</span></p>
            </div>
         </div>
       </div>
@@ -190,13 +281,19 @@ const MusicSection = () => {
 };
 
 const ProductSection = () => {
+  const categories = ['全部商品', '豆瓣经典', '家居生活', '外出旅行', '文具小物'];
   return (
     <div className="bg-[#1a1a1a] py-16 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-        <div className="w-32 hidden lg:block space-y-2">
-          <h2 className="text-[#42bd56] text-2xl font-bold mb-6">豆品</h2>
-          {['全部商品', '豆瓣经典', '家居生活', '外出旅行', '文具小物'].map(c => (
-            <p key={c} className="text-sm text-[#37a] hover:bg-[#37a] hover:text-white cursor-pointer px-1 py-0.5">{c}</p>
+        <div className="w-32 hidden lg:block space-y-3">
+          <h2 className="text-2xl font-bold mb-6 section-title-highlight">豆品</h2>
+          {categories.map((c, i) => (
+            <p 
+              key={c} 
+              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
+            >
+              {c}
+            </p>
           ))}
         </div>
         <div className="flex-1">
@@ -205,14 +302,14 @@ const ProductSection = () => {
             <div className="group cursor-pointer">
               <img src="https://picsum.photos/seed/blanket/400/300" className="w-full aspect-[4/3] object-cover rounded shadow-xl" />
               <div className="mt-4 flex justify-between items-center">
-                <h4 className="text-sm text-white group-hover:text-[#37a]">豆瓣豆品“合法休息”半边绒盖毯</h4>
+                <h4 className="text-sm text-white group-hover:text-[#37a] douban-ease">豆瓣豆品“合法休息”半边绒盖毯</h4>
                 <span className="text-red-500 font-bold">￥118</span>
               </div>
             </div>
             <div className="group cursor-pointer">
               <img src="https://picsum.photos/seed/notebook/400/300" className="w-full aspect-[4/3] object-cover rounded shadow-xl" />
               <div className="mt-4 flex justify-between items-center">
-                <h4 className="text-sm text-white group-hover:text-[#37a]">豆瓣2025日程本 碧树新程</h4>
+                <h4 className="text-sm text-white group-hover:text-[#37a] douban-ease">豆瓣2025日程本 碧树新程</h4>
                 <span className="text-red-500 font-bold">￥60</span>
               </div>
             </div>
@@ -220,15 +317,15 @@ const ProductSection = () => {
         </div>
         <div className="w-64 space-y-8">
            <div className="bg-gray-800/20 p-4 rounded border border-gray-800">
-              <h4 className="text-[#42bd56] font-bold text-sm mb-4">热门活动 · · · · · ·</h4>
+              <h4 className="font-bold text-sm mb-4 section-title-highlight">热门活动 · · · · · ·</h4>
               <img src="https://picsum.photos/seed/activity/300/150" className="w-full rounded mb-3" />
               <p className="text-[11px] text-gray-400">收集在全世界的豆品</p>
            </div>
            <div>
-              <h4 className="text-[#42bd56] font-bold text-sm mb-4 border-b border-gray-800 pb-2">官方小组 · · · · · · <span className="text-gray-500 text-xs">( 更多 )</span></h4>
+              <h4 className="font-bold text-sm mb-4 border-b border-gray-800 pb-2 section-title-highlight">官方小组 · · · · · · <span className="text-gray-500 text-xs douban-link ml-1">( 更多 )</span></h4>
               <div className="space-y-4 text-[11px]">
-                 <p className="text-[#37a] cursor-pointer hover:underline">首发优惠券膨胀活动已结束...</p>
-                 <p className="text-[#37a] cursor-pointer hover:underline">豆瓣2025日程本“碧树新程”上新</p>
+                 <p className="category-link cursor-pointer hover:underline">首发优惠券膨胀活动已结束...</p>
+                 <p className="category-link cursor-pointer hover:underline">豆瓣2025日程本“碧树新程”上新</p>
               </div>
            </div>
         </div>
@@ -265,13 +362,13 @@ const TopUtilityBar = () => (
       <span className="font-bold text-[#42bd56] tracking-widest text-sm italic cursor-pointer">douban</span>
       <div className="flex gap-4">
         {['读书', '电影', '音乐', '同城', '小组', '阅读', '时间', '豆品'].map(i => (
-          <span key={i} className="cursor-pointer hover:text-white transition-colors">{i}</span>
+          <span key={i} className="cursor-pointer hover:text-white douban-ease">{i}</span>
         ))}
       </div>
     </div>
     <div className="flex items-center gap-4">
-      <span className="cursor-pointer hover:text-white transition-colors">下载豆瓣客户端</span>
-      <span className="cursor-pointer hover:text-white transition-colors">登录/注册</span>
+      <span className="cursor-pointer hover:text-white douban-ease">下载豆瓣客户端</span>
+      <span className="cursor-pointer hover:text-white douban-ease">登录/注册</span>
     </div>
   </div>
 );
@@ -480,6 +577,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] flex flex-col font-sans select-none text-[#111]">
+      <DoubanStyles />
       <TopUtilityBar />
       <MainHeader />
       
