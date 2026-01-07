@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Search, User, Play, X, MessageSquare, Heart, Share2, Smartphone, QrCode, ChevronLeft, ChevronRight, Star, Scissors, Printer } from 'lucide-react';
-import { MOCK_MOVIES, MOCK_TOPICS, MOCK_GROUPS, MOCK_BOOKS, MOCK_ALBUMS, DOUBAN_GREEN } from './constants';
+import { MOCK_MOVIES, MOCK_TOPICS, MOCK_GROUPS, MOCK_BOOKS, MOCK_ALBUMS, DOUBAN_GREEN, MOCK_SELECTED_CONTENT, MOCK_SIDEBAR_TOPICS_LIST, MOCK_RUMOR_CRUSHER, MOCK_TIME, MOCK_CITY } from './constants';
 import { Movie, Topic } from './types';
 
 // --- Global Styles & CSS Variables ---
@@ -10,220 +10,545 @@ const DoubanStyles = () => (
     :root {
       --douban-green: #42bd56;
       --douban-dark-green: #007722;
-      --douban-blue: #3e9bc0; /* 豆瓣青蓝 variant for dark mode */
-      --douban-blue-hover: #ffffff;
-      --douban-yellow: #ffac2d;
-      --douban-text-gray: #ccc;
-      --douban-text-light: #fff;
+      --douban-blue: #37a;
+      --douban-bg: #111111; /* Deep charcoal, not pure black */
+      --douban-bg-light: #1c1c1c;
+      --text-title: #eee;
+      --text-body: #d5d5d5;
+      --text-aux: #888;
+      --douban-ticket-blue: #258dcd;
+      
+      /* Section Brand Colors */
+      --color-movie: #258dcd;
+      --color-book: #9b7c5e;
+      --color-music: #f58c1f;
+      --color-group: #007982; 
+      --color-time: #ef4623;
+      --color-city: #964;
     }
     
+    body {
+      background-color: var(--douban-bg);
+      color: var(--text-body);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 13px; /* Strict 13px base */
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 核心布局容器：1040px 居中 */
+    .douban-global-width {
+      width: 1040px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* 细腻的过渡效果 */
     .douban-ease {
-      transition: all 0.2s ease;
+      transition: all 0.2s ease-in-out;
     }
 
-    .douban-link {
-      color: var(--douban-text-gray);
-      text-decoration: none;
-    }
-
-    .douban-link:hover {
-      color: var(--douban-text-light);
-    }
-
-    .section-title-highlight {
-      color: var(--douban-green);
-      text-shadow: 0 0 20px rgba(66, 189, 86, 0.2);
-    }
-    
-    .category-link {
+    /* 豆瓣经典的链接交互 */
+    a, .douban-link {
       color: var(--douban-blue);
+      text-decoration: none;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    a:hover, .douban-link:hover {
+      color: #fff;
+      background-color: var(--douban-blue);
     }
     
-    .category-link:hover {
+    /* 顶部导航纯文字链接 */
+    .nav-link {
+      color: #d5d5d5;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-link:hover {
       color: #fff;
     }
-    
-    .category-link.active {
-      color: var(--douban-green);
-      font-weight: 600;
+
+    /* 标题样式 */
+    .section-title {
+      font-size: 24px;
+      font-weight: 500;
+      margin-bottom: 0;
     }
 
-    .rating-highlight {
-      color: var(--douban-yellow);
+    .text-aux {
+      color: var(--text-aux);
     }
     
-    .tag-highlight {
-      color: #5c9bc4;
+    /* 电影海报固定尺寸 */
+    .movie-poster {
+        width: 100px;
+        height: 142px;
+        object-fit: cover;
+    }
+    
+    /* 购票按钮 */
+    .ticket-btn {
+        background-color: var(--douban-ticket-blue);
+        color: white;
+        border-radius: 2px;
+        font-size: 11px;
+        padding: 2px 10px;
+        display: inline-block;
+        line-height: 1.5;
+    }
+    .ticket-btn:hover {
+        background-color: #1c7cae;
+        color: white;
+    }
+
+    /* 分割线样式 */
+    .section-separator {
+        border-bottom: 1px dashed #333;
+        padding-bottom: 40px;
+        margin-bottom: 40px;
     }
   `}</style>
 );
 
-// --- Reusable Layout Components ---
+// --- SVG Components ---
+const DoubanLogoSVG = () => (
+  <svg width="30" height="30" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg" className="rounded">
+    <rect width="50" height="50" rx="8" fill="#42bd56"/>
+    <path d="M12 21H38V37H12V21Z" fill="white"/>
+    <path d="M15 24H35V34H15V24Z" fill="#42bd56"/>
+    <path d="M12 11H38V15H12V11Z" fill="white"/>
+    <path d="M23 15V21H27V15H23Z" fill="white"/>
+  </svg>
+);
 
-const SectionHeader = ({ title, subtitle, extra, dark = false }: { title: string, subtitle?: string, extra?: string, dark?: boolean }) => (
-  <div className={`flex items-center gap-4 mb-6 border-b pb-2 ${dark ? 'border-white/10' : 'border-gray-800'}`}>
-    <h3 className={`font-bold text-xl douban-ease ${dark ? 'text-white' : 'text-[#007722]'}`}>
-      {title}
-    </h3>
-    {subtitle && (
-      <span className="text-sm mt-1 flex items-center douban-ease" style={{ color: 'var(--douban-text-gray)' }}>
-        {subtitle} · · · · · · 
-        <span className="ml-1 cursor-pointer douban-link douban-ease text-xs">
-          ( 更多 )
-        </span>
-      </span>
-    )}
-    {extra && (
-      <span className="text-sm ml-auto cursor-pointer douban-link douban-ease">
-        {extra}
-      </span>
-    )}
+// --- Reusable Layout Components ---
+const SectionHeader = ({ 
+  title, 
+  subtitle, 
+  extra, 
+  colorCode = '#eee',
+  items 
+}: { 
+  title: string, 
+  subtitle?: string, 
+  extra?: string, 
+  colorCode?: string,
+  items?: string[]
+}) => (
+  <div className="flex items-start gap-6 mb-5">
+    <div className="w-[100px] flex-shrink-0 pt-1">
+        <h2 className="section-title" style={{ color: colorCode }}>
+          {title}
+        </h2>
+    </div>
+    <div className="flex-1 pt-2 border-b border-[#333] pb-2 flex items-baseline justify-between">
+        <div className="flex gap-4 items-center">
+            {items && items.map((item, idx) => (
+                <span key={idx} className="text-[13px] cursor-pointer hover:bg-[#37a] hover:text-white px-1 rounded-sm transition-colors" style={{color: idx === 0 ? 'inherit' : '#37a'}}>
+                    {item}
+                </span>
+            ))}
+        </div>
+        {extra && (
+            <span 
+              className="text-xs px-1 ml-auto cursor-pointer hover:text-white hover:bg-[var(--hover-bg)] rounded-sm"
+              style={{ color: colorCode, '--hover-bg': colorCode } as React.CSSProperties}
+            >
+                {extra}
+            </span>
+        )}
+    </div>
   </div>
 );
 
-const SidebarList = ({ title, items, extra, dark = false }: { title: string, items: string[], extra?: string, dark?: boolean }) => (
-  <div className="w-full md:w-64 flex-shrink-0">
-    <div className={`flex items-center justify-between mb-4 border-b pb-2 ${dark ? 'border-white/10' : 'border-gray-800'}`}>
-      <h4 className="font-bold text-sm section-title-highlight douban-ease">{title} · · · · · ·</h4>
-      {extra && <span className="text-[11px] cursor-pointer douban-link douban-ease">{extra}</span>}
+const SidebarList = ({ title, items, extra, color = '#eee' }: { title: string, items: string[], extra?: string, color?: string }) => (
+  <div className="w-[300px] flex-shrink-0">
+    <div className="flex items-baseline justify-between mb-2 pb-1 border-b border-[#333]">
+      <h4 className="text-[14px]" style={{ color: color }}>{title}</h4>
+      {extra && (
+        <span 
+            className="text-xs px-1 cursor-pointer hover:text-white hover:bg-[var(--hover-bg)] rounded-sm"
+            style={{ color: color, '--hover-bg': color } as React.CSSProperties}
+        >
+            {extra}
+        </span>
+      )}
     </div>
-    <ul className="space-y-3">
+    <ul className="space-y-1.5 mt-2">
       {items.map((item, idx) => (
-        <li key={idx} className="text-sm cursor-pointer flex gap-3 group">
-          <span className="text-gray-500 w-4 font-mono text-xs pt-0.5">{idx + 1}.</span>
-          <span className="truncate douban-link douban-ease border-b border-transparent group-hover:border-white/30 pb-0.5">{item}</span>
+        <li key={idx} className="text-[13px] flex gap-2">
+          <span className="text-aux font-mono text-xs pt-0.5">{idx + 1}.</span>
+          <span className="douban-link truncate w-full px-1">{item}</span>
         </li>
       ))}
     </ul>
   </div>
 );
 
+// --- Header Components ---
+const TopUtilityBar = () => (
+  <div className="w-full bg-[#1e1e1e] h-[30px] border-b border-[#252525]">
+    <div className="douban-global-width h-full flex items-center justify-between text-[#d5d5d5] text-[12px]">
+      <div className="flex items-center gap-3">
+        {['豆瓣', '读书', '电影', '音乐', '同城', '小组', '阅读', 'FM', '时间', '豆品'].map((i, idx) => (
+          <span key={i} className={`cursor-pointer nav-link px-1 ${idx === 2 ? 'text-white' : ''}`}>{i}</span>
+        ))}
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="cursor-pointer nav-link">下载豆瓣客户端</span>
+        <span className="cursor-pointer nav-link">登录/注册</span>
+      </div>
+    </div>
+  </div>
+);
+
+const SiteHeader = () => (
+  <div className="bg-[#1c1c1c] py-6 w-full">
+    <div className="douban-global-width flex items-center gap-6">
+      <a href="#" className="flex-shrink-0" aria-label="豆瓣首页">
+         <div className="text-[#42bd56] font-bold text-3xl tracking-tighter flex items-center gap-2">
+            douban<span className="bg-[#42bd56] text-white text-xs px-1 py-0.5 rounded-sm font-normal tracking-normal">movie</span>
+         </div>
+      </a>
+      
+      <div className="flex relative items-center shadow-inner">
+        <input 
+          type="text" 
+          placeholder="搜索电影、电视剧、综艺、影人" 
+          className="w-[460px] h-[32px] px-3 text-[13px] bg-white text-[#111] rounded-l-sm border-none focus:outline-none placeholder-gray-400" 
+        />
+        <button className="w-[36px] h-[32px] bg-[#888] rounded-r-sm flex items-center justify-center cursor-pointer hover:bg-[#777]">
+            <Search size={16} className="text-white" />
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const PromoBanner = () => {
+  return (
+    <div className="relative w-full h-[180px] mb-10 border-t border-[#333] overflow-hidden" 
+         style={{ background: 'linear-gradient(to bottom, #1a2c1a 0%, #111111 100%)' }}>
+      
+      {/* Background Image Overlay for Texture */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-40 pointer-events-none" 
+           style={{ 
+             backgroundImage: 'url(https://img3.doubanio.com/f/shire/4bf31d9a20227183e206253c306540c4974c0a52/pics/nav/login_bg_new.png)',
+             backgroundPosition: 'center top',
+             backgroundRepeat: 'no-repeat'
+           }}>
+      </div>
+
+      <div className="douban-global-width h-full relative flex items-center justify-between z-10">
+        
+        {/* Left: App Promo */}
+        <div className="flex items-start gap-4 h-[120px] pt-4">
+           {/* Phone Image Placeholder */}
+           <div className="w-[130px] h-[160px] bg-contain bg-no-repeat bg-center"
+                style={{ backgroundImage: 'url(https://img3.doubanio.com/f/shire/852b66289b720138986c75333e66f272c72b5358/pics/nav/douban_app_ad.png)' }}>
+           </div>
+           
+           <div className="mt-2">
+              <h2 className="text-[25px] text-white font-bold m-0 leading-tight">豆瓣 7.0</h2>
+              <div className="mt-4">
+                  <button className="bg-[#00b51d] hover:bg-[#00a61b] text-white text-[12px] px-3 py-2 rounded-[2px] font-bold cursor-pointer transition-colors leading-none">
+                    下载豆瓣 App
+                  </button>
+                  <div className="mt-2 bg-[#00b51d] text-white text-[11px] px-2 py-0.5 rounded-[2px] inline-block bg-opacity-20 border border-[#00b51d]">
+                    2024 年度榜单
+                  </div>
+              </div>
+           </div>
+        </div>
+
+        {/* Right: Login Component */}
+        <div className="w-[300px]">
+           <div className="flex text-[13px] border-b border-white/20 pb-1 mb-3">
+              <span className="flex-1 text-center text-white font-bold cursor-pointer pb-2 border-b-2 border-white">短信登录/注册</span>
+              <span className="flex-1 text-center text-white/60 cursor-pointer hover:text-white pb-2">密码登录</span>
+           </div>
+           
+           <div className="space-y-3">
+              <div className="flex items-center h-[34px] bg-[rgba(255,255,255,0.1)] border border-white/20 rounded-[2px]">
+                 <span className="text-white font-bold px-3 border-r border-white/20 text-[13px]">+86</span>
+                 <input type="text" placeholder="手机号" className="bg-transparent border-none text-white text-[13px] px-2 focus:outline-none w-full placeholder-white/40 h-full"/>
+              </div>
+              
+              <div className="flex items-center h-[34px] bg-[rgba(255,255,255,0.1)] border border-white/20 rounded-[2px] pr-2">
+                 <input type="text" placeholder="验证码" className="bg-transparent border-none text-white text-[13px] px-3 focus:outline-none w-full placeholder-white/40 h-full"/>
+                 <span className="text-[#42bd56] text-[13px] cursor-pointer hover:text-white whitespace-nowrap pl-2 border-l border-white/10 py-1">获取验证码</span>
+              </div>
+              
+              <button className="w-full h-[34px] bg-[#42bd56] text-white text-[14px] font-bold rounded-[2px] hover:bg-[#3aa34a] mt-2 flex items-center justify-center">
+                 登录豆瓣
+              </button>
+              
+              <div className="flex justify-end text-[12px] text-white/60">
+                 <span className="cursor-pointer hover:text-white">海外手机登录</span>
+              </div>
+           </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 // --- Content Sections ---
 
-const GroupSection = () => {
-  const categories = ['新组', '追剧', '书影音', '人文', '闲趣', '兴趣', '生活', '美食', '家居', '体育运动', '宠物', '艺术', '科技', '情感', '科学自然', '学习', '校园', 'ACG', '职场', '理财'];
+// Refactored "Selected Content" Section
+const SelectedContentSection = () => {
   return (
-    <div className="bg-[#1a1a1a] py-16">
-      <div className="max-w-7xl mx-auto px-4 flex gap-16">
-        <div className="w-32 hidden lg:block space-y-3">
-          <h2 className="text-2xl font-bold mb-6 section-title-highlight">小组</h2>
-          {categories.map((c, i) => (
-            <p 
-              key={c} 
-              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
-            >
-              {c}
-            </p>
-          ))}
+    <div className="douban-global-width section-separator flex justify-between">
+        {/* Left Column: Feed (675px) */}
+        <div className="w-[675px]">
+             <div className="flex items-baseline justify-between mb-3 border-b border-[#333] pb-2">
+                 <h3 className="section-title text-[15px] text-[#007722]">精选内容 <span className="text-[12px] font-normal cursor-pointer hover:bg-[#37a] hover:text-white px-1 ml-2 text-[#37a]">( 更多 )</span></h3>
+             </div>
+             
+             <div className="pt-2">
+                 {MOCK_SELECTED_CONTENT.map((item, idx) => (
+                    <div key={item.id} className="mb-[30px] border-b border-[#222] border-dashed pb-[25px] last:border-0">
+                         {/* Header Info */}
+                         <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-[12px] text-[#aaa]">{item.source}</span>
+                         </div>
+                         <div className="flex items-center gap-2 mb-1.5">
+                             <img src={item.author.avatar} className="w-[18px] h-[18px] rounded-sm" />
+                             <span className="text-[#37a] text-[13px] hover:bg-[#37a] hover:text-white px-0.5 cursor-pointer">{item.author.name}</span>
+                         </div>
+
+                         {/* Title */}
+                         <h3 className="text-[16px] text-[#37a] cursor-pointer hover:bg-[#37a] hover:text-white inline-block px-1 -ml-1 mb-2 font-normal leading-tight">
+                            {item.title}
+                         </h3>
+                         
+                         {/* Body */}
+                         <div className="flex gap-5">
+                             <div className="flex-1">
+                                <p className="text-[13px] text-[#aaa] leading-[1.62] text-justify">
+                                    {item.preview}
+                                </p>
+                             </div>
+                             {item.image && (
+                                 <div className="flex-shrink-0 w-[100px] h-[100px]">
+                                     <img src={item.image} className="w-full h-full object-cover" />
+                                 </div>
+                             )}
+                         </div>
+                         
+                         {/* Stats */}
+                         <div className="mt-2 text-[12px] text-[#aaa]">
+                            {item.stats}
+                         </div>
+                    </div>
+                 ))}
+             </div>
         </div>
-        <div className="flex-1">
-          <SectionHeader title="热门小组" subtitle="" dark />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-10 gap-x-12">
-            {MOCK_GROUPS.map((g, i) => (
-              <div key={i} className="flex gap-4 items-center group cursor-pointer">
-                <img src={g.img} className="w-12 h-12 rounded border border-gray-800 group-hover:opacity-80 douban-ease" />
-                <div>
-                  <h4 className="text-sm category-link group-hover:text-white px-1 inline-block douban-ease font-medium">{g.title}</h4>
-                  <p className="text-[11px] text-gray-500 mt-1">{g.members} 个成员</p>
+
+        {/* Right Sidebar (300px) */}
+        <div className="w-[300px]">
+             {/* Ad Placeholder */}
+             <div className="w-full h-[90px] bg-[#222] mb-8 flex items-center justify-center text-aux text-xs border border-[#333] cursor-pointer hover:opacity-80 transition-opacity">
+                [广告] 一刻听播客
+             </div>
+
+             {/* Popular Topics */}
+             <div className="mb-8">
+                <div className="flex items-baseline justify-between mb-2 pb-1 border-b border-[#333]">
+                  <h4 className="text-[14px] text-[#aaa]">热门话题</h4>
+                  <span className="text-xs douban-link px-1">去话题广场</span>
                 </div>
-              </div>
-            ))}
-          </div>
+                <ul className="space-y-3 mt-2">
+                  {MOCK_SIDEBAR_TOPICS_LIST.map((topic, idx) => (
+                    <li key={idx} className="text-[13px]">
+                      <div className="mb-0.5 flex items-center flex-wrap gap-1">
+                        <span className="douban-link">{topic.text}</span>
+                        {topic.tag && <span className="text-[11px] bg-[#ff4d4d] text-white px-1 rounded-sm scale-90 origin-left">新</span>}
+                      </div>
+                      <div className="text-aux text-[12px]">{topic.count}</div>
+                    </li>
+                  ))}
+                </ul>
+             </div>
+             
+             {/* Douban Zones / Rumor Crusher */}
+             <div>
+                <div className="flex items-baseline justify-between mb-2 pb-1 border-b border-[#333]">
+                  <h4 className="text-[14px] text-[#42bd56]">豆瓣专区</h4>
+                </div>
+                <ul className="space-y-2 mt-2">
+                  {MOCK_RUMOR_CRUSHER.map((item, idx) => (
+                    <li key={idx} className="text-[13px]">
+                        <span className="douban-link leading-normal text-[#d5d5d5]">{item.title}</span>
+                    </li>
+                  ))}
+                </ul>
+             </div>
         </div>
-      </div>
     </div>
   );
 };
 
 const MovieSection = ({ onMovieClick }: { onMovieClick: (m: Movie) => void }) => {
-  const list = ['利刃出鞘3', '链锯人 剧场版：蕾塞篇', '无可奈何', '人偶之家', '奇遇', '弗兰肯斯坦', '刺杀小说家2', '拯救地球', '铁血战士：杀戮之地', '普通事故'];
-  const categories = ['影讯&购票', '选电影', '电视剧', '排行榜', '影评'];
-  
+  const rankingList = [
+    { title: '利刃出鞘3', rating: 7.5, img: 'https://picsum.photos/seed/knives/60/80' },
+    { title: '链锯人 剧场版', rating: 8.8 },
+    { title: '无可奈何', rating: 6.9 },
+    { title: '人偶之家', rating: 7.2 },
+    { title: '奇遇', rating: 8.1 },
+    { title: '弗兰肯斯坦', rating: 9.0 },
+    { title: '刺杀小说家2', rating: 6.5 },
+    { title: '拯救地球', rating: 5.4 },
+    { title: '铁血战士', rating: 7.0 },
+    { title: '普通事故', rating: 6.8 },
+  ];
+  const categories = ['影讯&购票', '选电影', '电视剧', '排行榜', '影评', '2024年度榜单', '2024年度报告'];
+  const movieColor = "#258dcd";
+
   return (
-    <div className="bg-[#1a1a1a] py-16 border-t border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-        <div className="w-32 hidden lg:block space-y-3">
-          <h2 className="text-2xl font-bold mb-6 section-title-highlight">电影</h2>
-          {categories.map((c, i) => (
-            <p 
-              key={c} 
-              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
-            >
-              {c}
-            </p>
-          ))}
-        </div>
+    <div className="douban-global-width section-separator">
+      <SectionHeader 
+        title="电影" 
+        colorCode={movieColor}
+        items={categories}
+        extra="更多»"
+      />
+      
+      <div className="flex gap-10">
         <div className="flex-1">
-          <SectionHeader title="正在热映" subtitle="" dark />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-10">
-            {MOCK_MOVIES.map(m => (
-              <div key={m.id} className="text-center group cursor-pointer" onClick={() => onMovieClick(m)}>
-                {/* Poster Container with Hover Effects */}
-                <div className="relative w-full aspect-[2/3] rounded shadow-lg overflow-hidden bg-gray-800">
-                  <img 
-                    src={m.image} 
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                    alt={m.title}
-                  />
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[1px]">
-                    <span className="text-white text-xs font-medium border border-white/70 px-3 py-1.5 rounded-full tracking-wide">
-                      查看详情
-                    </span>
-                  </div>
+          <div className="flex justify-between items-baseline mb-4">
+              <h3 className="text-[16px]" style={{color: movieColor}}>正在热映 <span className="text-[12px] font-normal cursor-pointer hover:bg-[#258dcd] hover:text-white px-1 ml-2 text-[#258dcd]">( 更多 )</span></h3>
+              <span className="text-xs px-1 cursor-pointer hover:bg-[#258dcd] hover:text-white rounded-sm" style={{color: movieColor}}>全部正在热映»</span>
+          </div>
+          {/* Main 5-Column Grid */}
+          <div className="grid grid-cols-5 gap-y-8 gap-x-5">
+            {MOCK_MOVIES.slice(0, 10).map(m => (
+              <div key={m.id} className="flex flex-col items-center group cursor-pointer" onClick={() => onMovieClick(m)}>
+                <div className="w-[100px] h-[142px] mb-2 shadow-md overflow-hidden bg-[#222] flex-shrink-0">
+                  <img src={m.image} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt={m.title}/>
                 </div>
                 
-                <h4 className="text-xs text-white mt-3 truncate douban-ease group-hover:text-[#37a]">{m.title}</h4>
-                <div className="flex items-center justify-center gap-1 my-1">
-                  <div className="flex text-[10px] rating-highlight">★★★★★</div>
-                  <span className="text-[11px] font-bold rating-highlight">{m.rating}</span>
+                <h4 className="text-[13px] text-[#37a] text-center w-[100px] truncate group-hover:bg-[#37a] group-hover:text-white px-0.5 leading-tight mb-1" title={m.title}>
+                    {m.title}
+                </h4>
+                
+                <div className="flex items-center justify-center gap-1 mb-1">
+                   <div className="flex text-[11px] text-[#e09015] gap-[1px]">
+                     <Star size={10} fill="#e09015" strokeWidth={0}/>
+                     <Star size={10} fill="#e09015" strokeWidth={0}/>
+                     <Star size={10} fill="#e09015" strokeWidth={0}/>
+                     <Star size={10} fill="#e09015" strokeWidth={0}/>
+                     <Star size={10} fill="#e09015" strokeWidth={0}/>
+                   </div>
+                   <span className="text-[12px] text-[#e09015]">{m.rating}</span>
                 </div>
-                <button className="bg-[#37a] text-white text-[10px] px-4 py-1.5 rounded-sm hover:bg-[#2c6aa1] mt-1 transition-colors">选座购票</button>
+                
+                <button className="ticket-btn">
+                  选座购票
+                </button>
               </div>
             ))}
           </div>
         </div>
-        <SidebarList title="近期热门" items={list} extra="( 更多 )" dark />
+
+        <div className="w-[300px] flex-shrink-0 pt-2">
+            <div className="flex items-baseline justify-between mb-3 pb-1 border-b border-[#333]">
+              <h4 className="text-[14px]" style={{color: movieColor}}>近期热门</h4>
+              <span className="text-xs px-1 cursor-pointer hover:bg-[#258dcd] hover:text-white rounded-sm" style={{color: movieColor}}>更多»</span>
+            </div>
+            
+            <div className="space-y-4">
+               {rankingList.map((item, idx) => (
+                   <div key={idx} className="flex gap-2">
+                      <span className={`text-[13px] w-4 ${idx === 0 ? 'text-[#e09015]' : 'text-aux'}`}>{idx + 1}.</span>
+                      {idx === 0 ? (
+                        <div className="flex gap-3">
+                           <img src={item.img} className="w-[60px] h-[80px] object-cover border border-[#333]" />
+                           <div className="flex flex-col justify-between py-1">
+                              <span className="douban-link text-[13px]">{item.title}</span>
+                              <span className="text-[12px] text-aux">评分 {item.rating}</span>
+                              <span className="text-[12px] text-aux">2025 / 美国 / 动作 / 悬疑</span>
+                           </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex justify-between border-b border-[#222] pb-1">
+                             <span className="douban-link text-[13px] truncate max-w-[180px]">{item.title}</span>
+                             {item.rating && <span className="text-[12px] text-[#e09015]">{item.rating}</span>}
+                        </div>
+                      )}
+                   </div>
+               ))}
+            </div>
+        </div>
       </div>
     </div>
   );
 };
 
 const BookSection = () => {
-  const categories = ['每月热门图书', '读书专题', '直播活动', '名家问答', '共读交流', '鉴书团'];
+  const books = [...MOCK_BOOKS, ...MOCK_BOOKS, ...MOCK_BOOKS].slice(0, 10); 
+  const categories = ['热门图书', '读书专题', '直播活动', '名家问答', '共读交流', '鉴书团'];
+  const bookColor = "#9b7c5e";
+  
   return (
-    <div className="bg-[#1a1a1a] py-16 border-t border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-        <div className="w-32 hidden lg:block space-y-3">
-          <h2 className="text-2xl font-bold mb-6 section-title-highlight">读书</h2>
-          {categories.map((c, i) => (
-            <p 
-              key={c} 
-              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
-            >
-              {c}
-            </p>
-          ))}
-        </div>
+    <div className="douban-global-width section-separator">
+      <SectionHeader 
+        title="读书" 
+        colorCode={bookColor} 
+        items={categories}
+        extra="更多»"
+      />
+      
+      <div className="flex gap-10">
         <div className="flex-1">
-          <SectionHeader title="新书速递" subtitle="" dark />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-            {MOCK_BOOKS.map((b, i) => (
-              <div key={i} className="text-center group cursor-pointer">
-                <img src={b.img} className="w-full aspect-[3/4] object-cover rounded shadow group-hover:opacity-80 douban-ease" />
-                <h4 className="text-xs text-[#37a] mt-3 group-hover:text-white inline-block px-1 douban-ease">{b.title}</h4>
-                <p className="text-[10px] text-gray-500 mt-1">{b.author}</p>
+          <div className="flex justify-between items-baseline mb-4">
+              <h3 className="text-[16px]" style={{color: bookColor}}>新书速递 <span className="text-[12px] font-normal cursor-pointer hover:bg-[#9b7c5e] hover:text-white px-1 ml-2 text-[#9b7c5e]">( 更多 )</span></h3>
+              <span className="text-xs px-1 cursor-pointer hover:bg-[#9b7c5e] hover:text-white rounded-sm" style={{color: bookColor}}>更多»</span>
+          </div>
+          
+          <div className="grid grid-cols-5 gap-y-8 gap-x-5">
+            {books.map((b, i) => (
+              <div key={i} className="flex flex-col items-center group cursor-pointer">
+                <div className="w-[100px] h-[142px] mb-2 bg-[#222] shadow-md flex-shrink-0 overflow-hidden">
+                  <img src={b.img} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt={b.title}/>
+                </div>
+                
+                <h4 className="text-[13px] text-[#37a] text-center w-[100px] truncate group-hover:bg-[#37a] group-hover:text-white px-0.5 leading-tight mb-1">
+                    {b.title}
+                </h4>
+                <div className="text-[12px] text-aux text-center w-[100px] truncate">
+                    {b.author}
+                </div>
               </div>
             ))}
           </div>
         </div>
-        <div className="w-64 space-y-8">
+        
+        <div className="w-[300px] flex-shrink-0 pt-2">
           <div>
-            <h4 className="font-bold text-sm mb-4 border-b border-gray-800 pb-2 section-title-highlight">热门标签 · · · · · · <span className="text-gray-500 font-normal text-xs douban-link ml-1">( 更多 )</span></h4>
-            <div className="text-[11px] text-gray-400 leading-relaxed space-y-2">
-              <p><span className="text-gray-600">[文学]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">小说 随笔 日本文学 散文 诗歌 童话 名著 港台 更多</span></p>
-              <p><span className="text-gray-600">[流行]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">漫画 推理 绘本 科幻 青春 言情 奇幻 武侠 更多</span></p>
-              <p><span className="text-gray-600">[文化]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">历史 哲学 传记 设计 电影 建筑 回忆录 音乐 更多</span></p>
+            <h4 className="text-[14px] mb-2 pb-1 border-b border-[#333]" style={{color: bookColor}}>热门标签</h4>
+            <div className="text-[12px] leading-7 flex flex-wrap gap-2 text-[#37a] mt-2">
+              <span className="hover:bg-[#37a] hover:text-white px-1 cursor-pointer">文学</span>
+              <span className="hover:bg-[#37a] hover:text-white px-1 cursor-pointer">小说</span>
+              <span className="hover:bg-[#37a] hover:text-white px-1 cursor-pointer">历史文化</span>
+              <span className="hover:bg-[#37a] hover:text-white px-1 cursor-pointer">社会纪实</span>
+              <span className="hover:bg-[#37a] hover:text-white px-1 cursor-pointer">科学新知</span>
+            </div>
+            
+            <div className="mt-8">
+               <h4 className="text-[14px] mb-2 pb-1 border-b border-[#333]" style={{color: bookColor}}>畅销图书榜</h4>
+               <ul className="space-y-2 mt-2">
+                  {[1,2,3,4,5].map(n => (
+                      <li key={n} className="flex text-[13px] gap-2">
+                          <span className="text-aux">{n}.</span>
+                          <span className="douban-link">示例畅销书目名称{n}</span>
+                      </li>
+                  ))}
+               </ul>
             </div>
           </div>
         </div>
@@ -233,338 +558,196 @@ const BookSection = () => {
 };
 
 const MusicSection = () => {
-  const categories = ['专题', '乐评', '豆瓣FM', '阿比鹿音乐奖'];
+  const albums = [...MOCK_ALBUMS, ...MOCK_ALBUMS].slice(0, 8); 
+  const categories = ['音乐人', '潮潮豆瓣音乐周', '金羊毛计划', '专题', '排行榜', '分类浏览', '乐评', '豆瓣FM'];
+  const musicColor = "#f58c1f";
+  
   return (
-    <div className="bg-[#1a1a1a] py-16 border-t border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-        <div className="w-32 hidden lg:block space-y-3">
-          <h2 className="text-2xl font-bold mb-6 section-title-highlight">音乐</h2>
-          {categories.map((c, i) => (
-            <p 
-              key={c} 
-              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
-            >
-              {c}
-            </p>
-          ))}
-          <div className="pt-4 flex flex-col items-center gap-1 border-t border-gray-800 mt-4">
-             <div className="w-10 h-10 bg-cyan-400 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-cyan-400/20">FM</div>
-             <span className="text-gray-400 text-[10px] group-hover:text-white douban-ease">豆瓣FM</span>
-          </div>
-        </div>
+    <div className="douban-global-width section-separator">
+      <SectionHeader 
+        title="音乐" 
+        colorCode={musicColor} 
+        items={categories}
+        extra="更多»"
+      />
+      
+      <div className="flex gap-10">
         <div className="flex-1">
-          <SectionHeader title="豆瓣新碟榜" subtitle="" dark />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-12 gap-x-8">
-            {MOCK_ALBUMS.map((a, i) => (
-              <div key={i} className="text-center group cursor-pointer">
-                <img src={a.img} className="w-full aspect-square object-cover rounded shadow group-hover:scale-105 douban-ease" />
-                <h4 className="text-xs text-[#37a] mt-3 group-hover:text-white inline-block px-1 douban-ease">{i+1}. {a.title}</h4>
-                <p className="text-[10px] text-gray-500 mt-1">{a.artist}</p>
-                <div className="flex items-center justify-center gap-1 mt-1">
-                   <div className="flex text-[8px] rating-highlight">★★★★★</div>
-                   <span className="text-[9px] font-bold rating-highlight">{a.rating}</span>
+          <div className="flex justify-between items-baseline mb-4">
+              <h3 className="text-[16px]" style={{color: musicColor}}>新碟榜 <span className="text-[12px] font-normal cursor-pointer hover:bg-[#f58c1f] hover:text-white px-1 ml-2 text-[#f58c1f]">( 更多 )</span></h3>
+              <span className="text-xs px-1 cursor-pointer hover:bg-[#f58c1f] hover:text-white rounded-sm" style={{color: musicColor}}>更多»</span>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-y-8 gap-x-6">
+            {albums.map((a, i) => (
+              <div key={i} className="group cursor-pointer">
+                <div className="mb-2 relative">
+                   <img src={a.img} className="w-full aspect-square object-cover shadow-md opacity-90 group-hover:opacity-100" />
+                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                       <Play fill="white" className="text-white w-8 h-8"/>
+                   </div>
+                </div>
+                
+                <h4 className="text-[13px] text-[#37a] truncate group-hover:bg-[#37a] group-hover:text-white inline-block px-1 leading-tight mb-0.5">
+                    {a.title}
+                </h4>
+                <div className="text-[12px] text-aux truncate">
+                    {a.artist}
+                </div>
+                <div className="flex items-center gap-1">
+                   <div className="flex text-[10px] text-[#e09015]">★★★★☆</div>
+                   <span className="text-[11px] text-[#e09015]">{a.rating}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
-        <div className="w-64">
-           <h4 className="font-bold text-sm mb-4 border-b border-gray-800 pb-2 section-title-highlight">热门标签 · · · · · · <span className="text-gray-500 font-normal text-xs douban-link ml-1">( 更多 )</span></h4>
-           <div className="text-[11px] text-gray-400 space-y-3">
-              <p><span className="text-gray-600">[风格]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">OST 流行 民谣 pop indie Electronic Folk 摇滚 J-POP ...</span></p>
-              <p><span className="text-gray-600">[艺术家]</span> <span className="tag-highlight hover:text-white cursor-pointer douban-ease">周杰伦 王菲 陈奕迅 孙燕姿 五月天 陈绮贞 苏打绿 ...</span></p>
-           </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ProductSection = () => {
-  const categories = ['全部商品', '豆瓣经典', '家居生活', '外出旅行', '文具小物'];
-  return (
-    <div className="bg-[#1a1a1a] py-16 border-t border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-        <div className="w-32 hidden lg:block space-y-3">
-          <h2 className="text-2xl font-bold mb-6 section-title-highlight">豆品</h2>
-          {categories.map((c, i) => (
-            <p 
-              key={c} 
-              className={`text-sm cursor-pointer px-1 py-0.5 douban-ease ${i === 0 ? 'category-link active' : 'category-link'}`}
-            >
-              {c}
-            </p>
-          ))}
-        </div>
-        <div className="flex-1">
-          <SectionHeader title="热卖商品" subtitle="" dark />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-            <div className="group cursor-pointer">
-              <img src="https://picsum.photos/seed/blanket/400/300" className="w-full aspect-[4/3] object-cover rounded shadow-xl" />
-              <div className="mt-4 flex justify-between items-center">
-                <h4 className="text-sm text-white group-hover:text-[#37a] douban-ease">豆瓣豆品“合法休息”半边绒盖毯</h4>
-                <span className="text-red-500 font-bold">￥118</span>
-              </div>
-            </div>
-            <div className="group cursor-pointer">
-              <img src="https://picsum.photos/seed/notebook/400/300" className="w-full aspect-[4/3] object-cover rounded shadow-xl" />
-              <div className="mt-4 flex justify-between items-center">
-                <h4 className="text-sm text-white group-hover:text-[#37a] douban-ease">豆瓣2025日程本 碧树新程</h4>
-                <span className="text-red-500 font-bold">￥60</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="w-64 space-y-8">
-           <div className="bg-gray-800/20 p-4 rounded border border-gray-800">
-              <h4 className="font-bold text-sm mb-4 section-title-highlight">热门活动 · · · · · ·</h4>
-              <img src="https://picsum.photos/seed/activity/300/150" className="w-full rounded mb-3" />
-              <p className="text-[11px] text-gray-400">收集在全世界的豆品</p>
-           </div>
-           <div>
-              <h4 className="font-bold text-sm mb-4 border-b border-gray-800 pb-2 section-title-highlight">官方小组 · · · · · · <span className="text-gray-500 text-xs douban-link ml-1">( 更多 )</span></h4>
-              <div className="space-y-4 text-[11px]">
-                 <p className="category-link cursor-pointer hover:underline">首发优惠券膨胀活动已结束...</p>
-                 <p className="category-link cursor-pointer hover:underline">豆瓣2025日程本“碧树新程”上新</p>
-              </div>
-           </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- Floating Toolbar Components ---
-
-const ToolbarItem = ({ icon, label }: { icon: React.ReactNode, label: string }) => (
-  <div className="relative group p-3 hover:bg-[#42bd56] rounded transition-colors cursor-pointer text-gray-400 hover:text-white">
-      {icon}
-      {/* Tooltip */}
-      <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-          {label}
-          {/* Little arrow */}
-          <div className="absolute top-1/2 right-[-4px] -translate-y-1/2 border-y-4 border-y-transparent border-l-4 border-l-black/80"></div>
-      </div>
-  </div>
-);
-
-const FloatingToolbar = () => (
-  <div className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-1 bg-[#2c2c2c]/90 backdrop-blur-sm p-1.5 rounded-l-lg border-y border-l border-white/5 shadow-2xl">
-     <ToolbarItem icon={<Scissors size={20} />} label="记录" />
-     <ToolbarItem icon={<Printer size={20} />} label="打印" />
-     <ToolbarItem icon={<MessageSquare size={20} />} label="消息" />
-  </div>
-);
-
-const TopUtilityBar = () => (
-  <div className="bg-[#2d3e2d] h-8 flex items-center justify-between px-4 text-[#d5d5d5] text-[11px] border-b border-white/5">
-    <div className="flex items-center gap-6">
-      <span className="font-bold text-[#42bd56] tracking-widest text-sm italic cursor-pointer">douban</span>
-      <div className="flex gap-4">
-        {['读书', '电影', '音乐', '同城', '小组', '阅读', '时间', '豆品'].map(i => (
-          <span key={i} className="cursor-pointer hover:text-white douban-ease">{i}</span>
-        ))}
-      </div>
-    </div>
-    <div className="flex items-center gap-4">
-      <span className="cursor-pointer hover:text-white douban-ease">下载豆瓣客户端</span>
-      <span className="cursor-pointer hover:text-white douban-ease">登录/注册</span>
-    </div>
-  </div>
-);
-
-const MainHeader = () => (
-  <header className="bg-[#2d3e2d] py-6 px-4 md:px-12 flex flex-col md:flex-row items-center justify-between gap-6">
-    <div className="flex items-center gap-8">
-      <h1 className="text-3xl font-bold text-[#42bd56] cursor-pointer tracking-tight">豆瓣网</h1>
-      <div className="flex relative items-center shadow-sm">
-        <input type="text" placeholder="书籍、电影、音乐、小组、小站、成员" className="w-72 md:w-[400px] px-3 py-2 text-[13px] bg-white border border-transparent focus:outline-none focus:ring-1 focus:ring-[#42bd56] rounded-sm text-gray-800 placeholder-gray-400 shadow-inner" />
-        <button className="bg-[#42bd56] px-3 py-2 rounded-r-sm hover:bg-[#3aa34a] transition-colors"><Search size={16} className="text-white" /></button>
-      </div>
-    </div>
-    <div className="flex items-center gap-6">
-         <Smartphone className="text-[#42bd56]" />
-         <QrCode className="text-[#42bd56]" />
-    </div>
-  </header>
-);
-
-const UnifiedTopSection = ({ onMovieClick, onTopicClick }: { onMovieClick: (m: Movie) => void, onTopicClick: (t: Topic) => void }) => {
-  const [loginTab, setLoginTab] = useState<'sms' | 'pwd'>('sms');
-
-  return (
-    <div className="bg-[#2d3e2d]">
-      {/* Floating Toolbar Integration */}
-      <FloatingToolbar />
-      
-      {/* Hero Content (Top Dark Green Area) */}
-      <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col lg:flex-row items-start justify-center gap-20">
         
-        {/* Right: Login Box */}
-        <div className="w-full max-w-[320px] pt-8">
-            <div className="flex items-center justify-between text-white mb-4">
-                 <h2 className="text-2xl font-light">豆瓣 <span className="font-bold">7.0</span></h2>
-                 <button className="bg-[#42bd56] hover:bg-[#3aa34a] text-white px-4 py-1.5 rounded text-xs font-bold transition-colors">
-                    下载豆瓣 App
-                 </button>
-            </div>
-            
-            {/* Added shadow-[0_4px_12px_rgba(0,0,0,0.3)] to login box */}
-            <div className="bg-white/5 backdrop-blur-sm p-5 rounded-md border border-white/5 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
-                <div className="flex border-b border-white/10 mb-4 text-xs">
-                <button 
-                    onClick={() => setLoginTab('sms')} 
-                    className={`flex-1 pb-2 font-medium transition-colors ${loginTab === 'sms' ? 'text-white border-b-2 border-[#42bd56]' : 'text-gray-400 hover:text-gray-200'}`}
-                >
-                    短信登录/注册
-                </button>
-                <button 
-                    onClick={() => setLoginTab('pwd')} 
-                    className={`flex-1 pb-2 font-medium transition-colors ${loginTab === 'pwd' ? 'text-white border-b-2 border-[#42bd56]' : 'text-gray-400 hover:text-gray-200'}`}
-                >
-                    密码登录
-                </button>
-                </div>
-                
-                <div className="space-y-3">
-                    <div className="flex">
-                        <div className="px-3 py-2 bg-black/20 border-r border-white/5 rounded-l text-gray-300 text-sm flex items-center">+86</div>
-                        <input 
-                          type="text" 
-                          placeholder="手机号" 
-                          className="flex-1 px-3 py-2 bg-black/20 border border-transparent text-white text-sm focus:outline-none focus:border-[#42bd56] focus:shadow-[0_0_8px_rgba(66,189,86,0.6)] rounded-r placeholder-gray-500 transition-all duration-300" 
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          placeholder="验证码" 
-                          className="flex-1 px-3 py-2 bg-black/20 border border-transparent rounded text-white text-sm focus:outline-none focus:border-[#42bd56] focus:shadow-[0_0_8px_rgba(66,189,86,0.6)] placeholder-gray-500 transition-all duration-300" 
-                        />
-                        <button className="px-3 py-2 text-xs text-[#42bd56] font-bold hover:text-white transition-colors">获取验证码</button>
-                    </div>
-                    <button className="w-full bg-[#42bd56] py-2.5 rounded text-white text-sm font-bold hover:bg-[#3aa34a] active:scale-[0.98] shadow transition-all duration-200 mt-2">
-                        登录豆瓣
-                    </button>
-                    <div className="flex justify-between text-[11px] text-gray-400 mt-1">
-                        <span className="cursor-pointer hover:text-white">海外手机登录</span>
-                        <span className="cursor-pointer hover:text-white">找回密码</span>
-                    </div>
-                    
-                    <div className="pt-3 border-t border-white/10 flex items-center justify-center gap-4 text-[10px] text-gray-500">
-                        <span>第三方登录:</span>
-                        <div className="flex gap-3">
-                             <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#42bd56] hover:text-white transition-colors cursor-pointer"><MessageSquare size={12} /></div>
-                             <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors cursor-pointer"><Share2 size={12} /></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-      </div>
-
-      {/* Hot Content Section - Differentiated Background (#344a34) and Top Border */}
-      <div className="bg-[#344a34] border-t border-[#ffffff08] py-12">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-16">
-            <div className="flex-1 space-y-8">
-              <SectionHeader title="精选内容" subtitle="" dark />
-              <div className="space-y-8">
-                {MOCK_MOVIES.slice(0, 3).map((movie) => (
-                  <div key={movie.id} onClick={() => onMovieClick(movie)} className="flex gap-6 group cursor-pointer border-b border-white/5 pb-8 hover:bg-white/5 transition-all duration-300 rounded-xl p-4 -mx-4">
-                    {/* Added shadow to movie poster container */}
-                    <div className="w-40 h-28 flex-shrink-0 rounded overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.3)] border border-white/5">
-                        <img src={movie.image} className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <h4 className="text-lg font-bold text-[#37a] group-hover:text-white transition-colors inline-block">{movie.title}</h4>
-                      {/* Softened text color to #e1e1e1 */}
-                      <p className="text-sm text-[#e1e1e1]/80 leading-relaxed line-clamp-2 group-hover:text-white/90">"{movie.description}"</p>
-                      <div className="flex items-center gap-6 text-[11px] text-[#e1e1e1]/60 pt-1">
-                        <span className="flex items-center gap-1 hover:text-gray-300"><MessageSquare size={12} /> 13 回应</span>
-                        <span className="flex items-center gap-1 hover:text-gray-300"><Heart size={12} /> 285 赞</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="w-full lg:w-[320px] space-y-8">
-              <SectionHeader title="热门话题" extra="去话题广场" dark />
-              <div className="space-y-2">
-                {MOCK_TOPICS.map((topic) => (
-                  <div key={topic.id} onClick={() => onTopicClick(topic)} className="flex items-center justify-between group cursor-pointer py-2.5 border-b border-white/5 last:border-0">
-                    <div className="flex items-center gap-2 overflow-hidden flex-1">
-                      {/* Softened text color to #e1e1e1 */}
-                      <span className="text-[13px] text-[#e1e1e1]/90 group-hover:text-[#37a] transition-colors truncate">
-                        {topic.title}
-                      </span>
-                      {topic.tag && (
-                        <span className="bg-[#ff8f5e] text-white text-[9px] px-1 py-0.5 rounded-[2px] font-bold flex-shrink-0 scale-90">
-                          {topic.tag}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                      {topic.stats.split('·')[1]?.trim() || '热度上升中'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Ad / Banner */}
-              <div className="w-full h-24 rounded overflow-hidden cursor-pointer group relative shadow-[0_4px_12px_rgba(0,0,0,0.3)] border border-white/5">
-                  <img 
-                    src="https://picsum.photos/seed/douban_promo/640/200" 
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-500 hover:scale-105" 
-                    alt="Advertisement"
-                  />
-                  <div className="absolute bottom-1 right-1 bg-black/40 text-white/60 text-[9px] px-1 rounded backdrop-blur-sm">广告</div>
-              </div>
-            </div>
+        <div className="w-[300px] flex-shrink-0 pt-2">
+          <div>
+            <h4 className="text-[14px] mb-2 pb-1 border-b border-[#333]" style={{color: musicColor}}>热门音乐人</h4>
+            <ul className="space-y-3 mt-2">
+               {[1,2,3,4,5].map(n => (
+                   <li key={n} className="flex gap-3 items-center">
+                       <img src={`https://picsum.photos/seed/musicartist${n}/48/48`} className="w-10 h-10 object-cover" />
+                       <div className="flex flex-col">
+                           <span className="text-[13px] text-[#37a] hover:bg-[#37a] hover:text-white cursor-pointer px-1">独立音乐人{n}</span>
+                           <span className="text-[12px] text-aux">流派: Indie Pop</span>
+                       </div>
+                   </li>
+               ))}
+            </ul>
           </div>
+        </div>
       </div>
     </div>
   );
 };
 
-
-const TopicDetailModal = ({ topic, onClose }: { topic: Topic | null, onClose: () => void }) => {
-  if (!topic) return null;
+const GroupSection = () => {
+  const categories = ['精选文化', '生活', '情感', '娱乐', '艺术', '科技', '创业', '闲趣'];
+  const groupColor = "#007982";
+  
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden relative">
-        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 bg-white/90 rounded-full p-2 z-20 hover:text-black"><X size={20} /></button>
-        <div className="h-48 bg-[#eef9eb] flex items-center justify-center relative overflow-hidden">
-          <img src={topic.image} className="w-full h-full object-cover opacity-30 absolute inset-0 blur-sm scale-110" />
-          <h2 className="text-3xl font-black text-gray-900 relative z-10 drop-shadow-sm">{topic.title}</h2>
+    <div className="douban-global-width section-separator">
+      <SectionHeader 
+        title="小组" 
+        colorCode={groupColor}
+        items={categories}
+        extra="更多»"
+      />
+      
+      <div className="flex gap-10">
+        <div className="flex-1">
+          <div className="flex justify-between items-baseline mb-4">
+              <h3 className="text-[16px]" style={{color: groupColor}}>热门小组 <span className="text-[12px] font-normal cursor-pointer hover:bg-[#007982] hover:text-white px-1 ml-2 text-[#007982]">( 更多 )</span></h3>
+              <span className="text-xs px-1 cursor-pointer hover:bg-[#007982] hover:text-white rounded-sm" style={{color: groupColor}}>更多»</span>
+          </div>
+          
+          {/* 2-Column Grid as requested */}
+          <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+            {MOCK_GROUPS.map((g, i) => (
+              <div key={i} className="flex gap-4 items-start group cursor-pointer">
+                <img src={g.img} className="w-[48px] h-[48px] rounded-sm border border-[#333] opacity-90 group-hover:opacity-100 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-[14px] font-medium text-[#37a] group-hover:bg-[#37a] group-hover:text-white inline-block px-1 mb-1">
+                      {g.title}
+                  </h4>
+                  <p className="text-[12px] text-aux mt-0.5">
+                      {g.members} 个成员
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="p-10 space-y-6">
-          <p className="text-gray-700 italic border-l-4 border-[#42bd56] pl-6 text-lg leading-relaxed">"{topic.content}"</p>
-          <button onClick={onClose} className="bg-[#42bd56] text-white px-8 py-3 rounded-lg text-sm font-bold w-full hover:bg-[#3aa34a] shadow-lg transition-all">立即参与话题</button>
+        
+        <div className="w-[300px] flex-shrink-0 pt-2">
+           <SidebarList title="小组分类" items={categories} color={groupColor} extra="更多" />
         </div>
       </div>
     </div>
   );
+};
+
+const TimeSection = () => {
+    const timeColor = "#ef4623";
+    return (
+        <div className="douban-global-width section-separator">
+            <SectionHeader title="豆瓣时间" colorCode={timeColor} extra="更多»" />
+            <div className="grid grid-cols-5 gap-y-8 gap-x-5">
+                {MOCK_TIME.map((t, i) => (
+                    <div key={i} className="flex flex-col items-center group cursor-pointer">
+                        <div className="w-[100px] h-[142px] mb-2 bg-[#222] shadow-md flex-shrink-0 overflow-hidden relative">
+                            <img src={t.img} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute top-0 right-0 bg-[#ef4623] text-white text-[10px] px-1 py-0.5 rounded-bl-sm">
+                                {t.type}
+                            </div>
+                        </div>
+                        <h4 className="text-[13px] text-[#37a] text-center w-[100px] truncate group-hover:bg-[#37a] group-hover:text-white px-0.5 leading-tight mb-1">
+                            {t.title}
+                        </h4>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const CitySection = () => {
+    const cityColor = "#964"; // Typical brownish color for Douban City
+    return (
+        <div className="douban-global-width section-separator !border-none">
+            <SectionHeader title="同城" colorCode={cityColor} extra="更多»" />
+             <div className="flex gap-10">
+                <div className="flex-1">
+                    <div className="flex justify-between items-baseline mb-4">
+                         <h3 className="text-[16px]" style={{color: cityColor}}>热门活动 <span className="text-[12px] font-normal cursor-pointer hover:bg-[#964] hover:text-white px-1 ml-2 text-[#964]">( 更多 )</span></h3>
+                    </div>
+                    <div className="grid grid-cols-5 gap-y-8 gap-x-5">
+                        {MOCK_CITY.map((c, i) => (
+                            <div key={i} className="flex flex-col items-center group cursor-pointer">
+                                <div className="w-[100px] h-[142px] mb-2 bg-[#222] shadow-md flex-shrink-0 overflow-hidden">
+                                    <img src={c.img} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <h4 className="text-[13px] text-[#37a] text-center w-[100px] truncate group-hover:bg-[#37a] group-hover:text-white px-0.5 leading-tight mb-1">
+                                    {c.title}
+                                </h4>
+                                <div className="text-[11px] text-aux text-center w-[100px] leading-tight">
+                                    {c.info}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                 <div className="w-[300px] flex-shrink-0 pt-2">
+                    <SidebarList title="活动分类" items={['音乐', '戏剧', '讲座', '聚会', '电影', '展览', '运动', '公益', '旅行']} color={cityColor} extra="更多" />
+                </div>
+            </div>
+        </div>
+    );
 };
 
 const MovieDetailModal = ({ movie, onClose }: { movie: Movie | null, onClose: () => void }) => {
   if (!movie) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-      <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col md:flex-row relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 bg-white/80 rounded-full p-2 z-10 hover:text-black"><X size={20} /></button>
-        <img src={movie.image} className="w-full md:w-80 object-cover" />
-        <div className="flex-1 p-8 space-y-6 overflow-y-auto max-h-[85vh]">
-          <h2 className="text-3xl font-bold text-gray-900">{movie.title} <span className="text-gray-400 font-normal">({movie.year})</span></h2>
-          <div className="text-[#e09015] font-bold text-2xl flex items-center gap-2">
-              <div className="flex text-lg">★★★★★</div>
-              {movie.rating}
-          </div>
-          <p className="text-sm text-gray-600 leading-7">{movie.description}</p>
-          <div className="flex gap-4 pt-4">
-             <button className="flex-1 bg-[#fae9da] text-[#ca6445] py-2 rounded text-sm font-bold hover:bg-[#fcefe3]">想看</button>
-             <button className="flex-1 bg-[#f0f3f5] text-gray-700 py-2 rounded text-sm font-bold border border-transparent hover:bg-gray-200">看过</button>
-          </div>
+      <div className="bg-[#1c1c1c] rounded shadow-2xl max-w-2xl w-full flex relative border border-[#333]">
+        <button onClick={onClose} className="absolute top-3 right-3 text-gray-500 hover:text-white"><X size={18} /></button>
+        <div className="p-8 flex gap-6">
+            <img src={movie.image} className="w-[135px] h-[200px] object-cover shadow-lg border border-[#333]" />
+            <div className="flex-1 space-y-3">
+                <h2 className="text-2xl font-bold text-[#eee]">{movie.title} <span className="text-gray-500 font-normal">({movie.year})</span></h2>
+                <div className="flex items-center gap-2">
+                    <div className="flex text-[#e09015] text-sm">★★★★★</div>
+                    <span className="text-[#e09015] font-bold">{movie.rating}</span>
+                </div>
+                <div className="text-[13px] text-[#d5d5d5] space-y-1">
+                    <p><span className="text-aux">导演:</span> {movie.director}</p>
+                    <p><span className="text-aux">主演:</span> {movie.stars.join(' / ')}</p>
+                </div>
+                <p className="text-[13px] text-[#d5d5d5] leading-relaxed mt-4">{movie.description}</p>
+            </div>
         </div>
       </div>
     </div>
@@ -573,39 +756,42 @@ const MovieDetailModal = ({ movie, onClose }: { movie: Movie | null, onClose: ()
 
 export default function App() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] flex flex-col font-sans select-none text-[#111]">
+    <div className="min-h-screen bg-[#111] flex flex-col font-sans">
       <DoubanStyles />
       <TopUtilityBar />
-      <MainHeader />
+      <SiteHeader />
+      <PromoBanner />
       
-      {/* Merged Top Section for Seamless Background */}
-      <UnifiedTopSection onMovieClick={setSelectedMovie} onTopicClick={setSelectedTopic} />
-      
-      <main className="flex-1">
-        {/* Following Sections in specific order */}
-        <GroupSection />
+      <main className="pb-10">
+        <SelectedContentSection />
         <MovieSection onMovieClick={setSelectedMovie} />
         <BookSection />
         <MusicSection />
-        <ProductSection />
+        <GroupSection />
+        <TimeSection />
+        <CitySection />
       </main>
 
-      <footer className="bg-[#1a1a1a] py-16 px-4 text-white/40 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-8 text-xs">
-          <p>© 2005－2025 douban.com, all rights reserved 北京豆网科技有限公司</p>
-          <div className="flex gap-6 text-gray-500">
-            {['关于豆瓣', '在豆瓣工作', '联系我们', '法律声明', '帮助中心', '移动应用', '豆瓣广告'].map(i => (
-              <span key={i} className="hover:text-white cursor-pointer transition-colors">{i}</span>
-            ))}
-          </div>
-        </div>
+      <footer className="bg-[#1c1c1c] py-12 mt-0 border-t border-[#333] text-center text-[#666] text-[12px]">
+         <div className="douban-global-width">
+             <div className="mb-2 space-x-4">
+                 <span className="cursor-pointer hover:text-white hover:bg-[#37a] hover:px-1 rounded-sm transition-colors">关于豆瓣</span>
+                 <span className="cursor-pointer hover:text-white hover:bg-[#37a] hover:px-1 rounded-sm transition-colors">在豆瓣工作</span>
+                 <span className="cursor-pointer hover:text-white hover:bg-[#37a] hover:px-1 rounded-sm transition-colors">联系我们</span>
+                 <span className="cursor-pointer hover:text-white hover:bg-[#37a] hover:px-1 rounded-sm transition-colors">法律声明</span>
+                 <span className="cursor-pointer hover:text-white hover:bg-[#37a] hover:px-1 rounded-sm transition-colors">帮助中心</span>
+                 <span className="cursor-pointer hover:text-white hover:bg-[#37a] hover:px-1 rounded-sm transition-colors">移动应用</span>
+                 <span className="cursor-pointer hover:text-white hover:bg-[#37a] hover:px-1 rounded-sm transition-colors">豆瓣广告</span>
+             </div>
+             <div>
+                 © 2005－2026 douban.com, all rights reserved 北京豆网科技有限公司
+             </div>
+         </div>
       </footer>
 
       <MovieDetailModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
-      <TopicDetailModal topic={selectedTopic} onClose={() => setSelectedTopic(null)} />
     </div>
   );
 }

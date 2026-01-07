@@ -27,6 +27,19 @@ export interface Topic {
   content: string;
 }
 
+export interface SelectedContentItem {
+  id: string;
+  source: string; // e.g., '来自：豆瓣日记'
+  author: {
+    name: string;
+    avatar: string;
+  };
+  title: string;
+  preview: string;
+  stats: string; // e.g., '53回应 395赞 67转发'
+  image?: string; // Optional thumbnail
+}
+
 export interface TeamMember {
   role: string;
   name: string;
