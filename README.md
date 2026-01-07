@@ -1,20 +1,34 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Douban Movie Clone - 高还原度深色模式豆瓣首页
 
-# Run and deploy your AI Studio app
+这是一个基于 **React** 和 **Vite** 开发的豆瓣首页 1:1 高还原度克隆项目。本项目不仅实现了官网的布局逻辑，还深度定制了全站的**深色模式（Dark Mode）**视觉系统。
 
-This contains everything you need to run your app locally.
+## 🌟 项目亮点 (Project Highlights)
 
-View your app in AI Studio: https://ai.studio/apps/drive/13E2DQ1wlyF7sd8J7DIKuPHpOq8gx0Yjc
+* **像素级还原**：严格参考豆瓣官网 UI 系统，包括 1040px 固定宽度容器、标准网格布局以及豆瓣特有的星星评分组件。
+* **全站深色模式**：针对豆瓣原本的浅色视觉进行了重构，采用 `#111` 底色配以豆瓣标志性的分区色（电影蓝、读书棕、小组青）。
+* **响应式信息流**：左侧实现了复杂的图文混排“精选内容”信息流，右侧配套了动态高度的侧边栏。
+* **交互细节**：
+    * 导航栏 Hover 态切换。
+    * 侧边栏热门话题悬停高亮。
+    * 右下角悬浮工具栏（剪刀、打印、意见反馈）。
 
-## Run Locally
+## 🛠️ 技术栈 (Tech Stack)
 
-**Prerequisites:**  Node.js
+* **前端框架**: React 18
+* **构建工具**: Vite (极速开发体验)
+* **样式处理**: CSS Modules / Tailwind CSS (确保样式不冲突)
+* **图标库**: Lucide-React
+* **部署**: 已适配 GitHub Pages / Vercel
 
+## 🚀 快速开始 (Getting Started)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+如果你想在本地运行本项目，请确保已安装 Node.js 环境：
+
+1. **克隆项目**
+   ```bash
+   git clone [你的仓库地址]
+   cd douban-movie-clone
+安装依赖
+   npm install
+本地开发模式运行
+   npm run dev
